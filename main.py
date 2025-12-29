@@ -1,79 +1,97 @@
 import math
-# ==========================================
-# [추가됨] 변수명(Key) 추적 함수
-# ==========================================
-def find_key_path(data, target_value, current_path=""):
-    """
-    데이터(JSON) 안에서 특정 값(3443)을 가진 'Key(변수명)'를 찾아냅니다.
-    """
-    # 비교를 위해 목표값을 문자열(정수)로 변환 (예: 3443.85 -> "3443")
-    target_str = str(target_value).split('.')[0] 
 
-    if isinstance(data, dict):
-        for k, v in data.items():
-            # 경로 기록 (예: stats['attack'])
-            new_path = f"{current_path}['{k}']" if current_path else k
-            
-            # 1. 값이 일치하는지 확인 (소수점 버리고 비교)
-            try:
-                if str(v).split('.')[0] == target_str:
-                    print(f"\n" + "="*40)
-                    print(f"🎉 찾았습니다! 범인은 바로 이 Key입니다: '{k}'")
-                    print(f"📌 전체 경로: data[{new_path}]")
-                    print(f"💰 실제 들어있는 값: {v}")
-                    print("="*40 + "\n")
-            except:
-                pass
-            
-            # 2. 더 깊은 구조 탐색 (재귀)
-            if isinstance(v, (dict, list)):
-                find_key_path(v, target_value, new_path)
+# 찾은 결과를 저장할 리스트 (이걸로 'found' 여부를 판단합니다)
+found_paths = []
 
-    elif isinstance(data, list):
-        for i, item in enumerate(data):
-            new_path = f"{current_path}[{i}]"
-            find_key_path(item, target_value, new_path)
+# ==========================================
+# 1. 비교 로직 함수 (사용자가 만든 것 활용)
+# ==========================================
 def is_match(target_input, data_value):
     """
-    target_input: 사용자가 입력한 목표값 (예: 3443)
-    data_value: 게임 데이터에서 가져온 값 (예: 3443.85)
+    target_input: 찾는 값 (예: 3443)
+    data_value: 데이터 값 (예: 3443.85, "3443", 3443)
     """
-    # 데이터가 없으면 False
     if data_value is None:
         return False
-
-    # 모든 값을 문자열로 변환해 둡니다
+        
     str_target = str(target_input).strip()
     str_data = str(data_value).strip()
 
-    # ---------------------------------------------------
-    # 방법 1: 소수점을 버리고 정수끼리 비교 (가장 추천)
-    # ---------------------------------------------------
+    # 쉼표 제거 (예: "1,234" -> "1234")
+    str_data_clean = str_data.replace(',', '')
+
     try:
-        # 데이터를 실수(float)로 바꾼 뒤 정수(int)로 내림 처리
-        # 예: 3443.85 -> 3443
+        # 소수점 버리고 정수로 변환하여 비교 (3443.99 -> 3443 == 3443)
         num_target = int(float(str_target))
-        num_data = int(float(str_data))
-        
+        num_data = int(float(str_data_clean))
+
         if num_target == num_data:
             return True
     except ValueError:
-        pass  # 숫자가 아닌 경우(이름 등)는 넘어갑니다
+        pass
 
-    # ---------------------------------------------------
-    # 방법 2: 문자열 포함 여부 확인 (보조 수단)
-    # ---------------------------------------------------
-    # 예: "전투력 3443.85" 라는 문자에 "3443"이 들어있는지 확인
+    # 문자열 포함 여부 (보조)
     if str_target in str_data:
         return True
-
+        
     return False
 
 # ==========================================
-# print("🕵️‍♂️ 전체 데이터에서 값 '3443'을 가진 변수명(Key)을 수색합니다...")
+# 2. 변수명(Key) 추적 함수 (재귀)
+# ==========================================
+def find_key_path(data, target_value, current_path=""):
+    # 딕셔너리 탐색
+    if isinstance(data, dict):
+        for k, v in data.items():
+            # 경로 기록
+            new_path = f"{current_path}['{k}']" if current_path else f"['{k}']"
 
-# (중요) 여기에 실제 데이터 변수를 넣어야 합니다!
-# 예를 들어, 위에서 data = response.json() 이라고 했다면 그대로 두시면 됩니다.
-find_key_path(data, 3443)
-if not found:
-    print("\n😭 모든 곳을 뒤졌는데도 안 나옵니다...")
+            # ★ 핵심 수정: 여기서 is_match 함수를 호출합니다!
+            if is_match(target_value, v):
+                print(f"\n" + "="*40)
+                print(f"🎉 찾았습니다! Key: '{k}'")
+                print(f"📌 전체 경로: data{new_path}")
+                print(f"💰 실제 값: {v}")
+                print("="*40 + "\n")
+                found_paths.append(new_path) # 찾았다고 기록
+
+            # 더 깊이 탐색 (재귀)
+            if isinstance(v, (dict, list)):
+                find_key_path(v, target_value, new_path)
+
+    # 리스트 탐색
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            new_path = f"{current_path}[{i}]"
+            
+            # 리스트 안의 값 자체가 목표값일 경우 체크
+            if is_match(target_value, item):
+                 print(f"\n" + "="*40)
+                 print(f"🎉 찾았습니다! Index: [{i}]")
+                 print(f"📌 전체 경로: data{new_path}")
+                 print(f"💰 실제 값: {item}")
+                 print("="*40 + "\n")
+                 found_paths.append(new_path)
+
+            find_key_path(item, target_value, new_path)
+
+# ==========================================
+# 실행부
+# ==========================================
+
+# (중요) data 변수가 이미 정의되어 있어야 합니다.
+# 예: data = response.json() 
+
+print("🕵️‍♂️ 탐색을 시작합니다...")
+
+# 찾은 목록 초기화
+found_paths = [] 
+
+# 함수 실행 (찾는 값: 3443)
+find_key_path(data, 3443) 
+
+# 결과 확인
+if len(found_paths) == 0:
+    print("\n😭 모든 곳을 뒤졌는데도 안 나옵니다... (데이터가 로드되었는지 확인해주세요)")
+else:
+    print(f"\n✅ 총 {len(found_paths)}개의 위치를 발견했습니다.")
