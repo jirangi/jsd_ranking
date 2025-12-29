@@ -1,65 +1,69 @@
 import requests
 import os
 import json
+import sys
 
-# API 키 설정
+# 1. 안전장치: API 키 가져오기
 RAW_API_KEY = os.environ.get('LOA_API_KEY', '')
-API_KEY = RAW_API_KEY.replace("Bearer ", "").strip()
+API_KEY = RAW_API_KEY.replace("Bearer ", "").replace("bearer ", "").strip()
 
-def find_real_combat_power():
-    if not API_KEY:
-        print("🚫 API 키가 없습니다.")
-        return
-
-    nickname = "핑뚝이환수사"
-    target_value = "3443" # 우리가 찾는 보물 (핑뚝이의 전투력 앞자리)
-
-    print(f"🕵️‍♂️ '{nickname}'의 데이터에서 '{target_value}'를 찾는 중입니다...\n")
+def main():
+    print("🚀 데이터 분석 시작...")
     
-    headers = {'accept': 'application/json', 'authorization': f'bearer {API_KEY}'}
-    encoded_name = requests.utils.quote(nickname)
+    # 결과 내용을 담을 변수
+    result_html = ""
     
-    # 1. 프로필(Profiles) 뒤지기
-    url_profile = f'https://developer-lostark.game.onstove.com/armories/characters/{encoded_name}/profiles'
-    res_prof = requests.get(url_profile, headers=headers)
-    
-    if res_prof.status_code == 200:
-        data_prof = res_prof.json()
-        print("--- [1] 프로필(Profile) 검사 ---")
-        # 데이터를 문자열로 바꿔서 검색
-        str_prof = json.dumps(data_prof, ensure_ascii=False)
-        if target_value in str_prof:
-            print(f"✅ 발견! 프로필 데이터 어딘가에 '{target_value}'가 있습니다!")
-            # 상세 위치 찾기 (Stats 안에 있는지 확인)
-            if 'Stats' in data_prof:
-                for stat in data_prof['Stats']:
-                    if target_value in str(stat['Value']):
-                        print(f"   👉 찾았다! [Stats] 목록의 이름: '{stat['Type']}' / 값: {stat['Value']}")
+    try:
+        if not API_KEY:
+            result_html = "<h1>🚫 API 키가 없습니다. Settings > Secrets를 확인하세요.</h1>"
+            print("❌ API 키 없음")
         else:
-            print("❌ 프로필에는 없습니다. (여기 있는 '공격력'은 가짜입니다)")
-
-    # 2. 장비(Equipment) 뒤지기 (여기에 있을 확률이 높음)
-    url_equip = f'https://developer-lostark.game.onstove.com/armories/characters/{encoded_name}/equipment'
-    res_equip = requests.get(url_equip, headers=headers)
-
-    if res_equip.status_code == 200:
-        data_equip = res_equip.json()
-        print("\n--- [2] 장비(Equipment) 검사 ---")
-        str_equip = json.dumps(data_equip, ensure_ascii=False)
-        
-        if target_value in str_equip:
-            print(f"✅ 대박! 장비 데이터 안에서 '{target_value}'를 찾았습니다!")
-            print("   (아마 무기 툴팁 안에 숨어있는 '기본 효과'이거나 '무기 공격력'일 수 있습니다.)")
+            nickname = "핑뚝이환수사"
+            print(f"🔍 '{nickname}' 정보 조회 중...")
             
-            # 무기만 따로 떼서 툴팁 내용을 보여줌
-            for item in data_equip:
-                if item['Type'] == "무기":
-                    print(f"\n   🗡️ [무기 정보]: {item['Name']}")
-                    # 툴팁 안에 숫자가 있는지 확인
-                    if target_value in item['Tooltip']:
-                        print(f"   👉 무기 툴팁(Tooltip) 안에 '{target_value}'가 포함되어 있습니다.")
-        else:
-            print("❌ 장비 데이터에도 없습니다.")
+            headers = {'accept': 'application/json', 'authorization': f'bearer {API_KEY}'}
+            
+            # (1) 프로필 데이터
+            url_prof = f'https://developer-lostark.game.onstove.com/armories/characters/{requests.utils.quote(nickname)}/profiles'
+            res_prof = requests.get(url_prof, headers=headers)
+            str_prof = json.dumps(res_prof.json(), indent=4, ensure_ascii=False) if res_prof.status_code == 200 else f"Error: {res_prof.status_code}"
+
+            # (2) 장비 데이터
+            url_equip = f'https://developer-lostark.game.onstove.com/armories/characters/{requests.utils.quote(nickname)}/equipment'
+            res_equip = requests.get(url_equip, headers=headers)
+            str_equip = json.dumps(res_equip.json(), indent=4, ensure_ascii=False) if res_equip.status_code == 200 else f"Error: {res_equip.status_code}"
+
+            # 찾을 숫자 (전투력 앞자리)
+            target = "3443"
+            msg = "❌ 못 찾았습니다."
+            if target in str_prof: msg = f"✅ 프로필 데이터에서 '{target}' 발견!"
+            elif target in str_equip: msg = f"✅ 장비 데이터에서 '{target}' 발견!"
+            
+            print(msg)
+
+            # HTML 내용 채우기
+            result_html = f"""
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head><meta charset="UTF-8"><title>데이터 분석</title></head>
+            <body style="background:#121214; color:#fff; padding:20px; font-family:monospace; white-space:pre-wrap;">
+            <h1 style="color:#ffca5c">{msg}</h1>
+            <h2>1. 프로필 데이터</h2>
+            <div style="background:#222; padding:10px; border:1px solid #555;">{str_prof.replace(target, f'<b style="background:red; color:white">{target}</b>')}</div>
+            <h2>2. 장비 데이터</h2>
+            <div style="background:#222; padding:10px; border:1px solid #555;">{str_equip.replace(target, f'<b style="background:red; color:white">{target}</b>')}</div>
+            </body>
+            </html>
+            """
+            
+    except Exception as e:
+        print(f"💥 에러 발생: {e}")
+        result_html = f"<h1>💥 에러가 발생했습니다: {e}</h1>"
+
+    # [중요] 무조건 파일 저장 (들여쓰기 주의!)
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(result_html)
+    print("💾 index.html 파일 저장 완료!")
 
 if __name__ == "__main__":
-    find_real_combat_power()
+    main()
