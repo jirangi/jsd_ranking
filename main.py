@@ -74,25 +74,31 @@ def find_key_path(data, target_value, current_path=""):
 # ==========================================
 # 3. 실행부 (이 부분을 주의하세요!)
 # ==========================================
-# data 변수가 있다고 가정하고 실행합니다.
-# 만약 'data'가 정의되지 않았다는 오류가 나면 
-# 위쪽 코드 어딘가에서 data = ... 로 데이터를 불러오는 부분이 있어야 합니다.
+# 👇 [이 부분이 빠져 있습니다!] 👇
+# 원래 작성하셨던 데이터를 가져오는 코드를 여기에 적어야 합니다.
+# 예: url = "..." 하고 requests.get 하는 부분입니다.
+import requests  # 만약 위에서 안 했다면
+url = "https://developer-lostark.game.onstove.com/..." # (사용자분의 원래 URL)
+headers = { ... } # (사용자분의 원래 인증키)
 
+response = requests.get(url, headers=headers) # API 호출
+data = response.json()  # 👈 데이터를 'data'라는 변수에 담습니다. (중요!)
+
+
+# 👇 [여기서부터는 제가 드린 코드 그대로] 👇
 try:
     print("🕵️‍♂️ 탐색 시작 (찾는 값: 3443)...")
     
-    # 이전에 찾은 목록 초기화
     found_paths = [] 
     
-    # ★ 중요: data 변수가 코드 상단에 정의되어 있어야 합니다.
-    # 만약 data 변수명이 다르다면 아래 'data'를 실제 변수명으로 바꿔주세요.
+    # 이제 'data' 변수가 있으니 정상 작동할 겁니다!
     if 'data' in locals() or 'data' in globals():
         find_key_path(data, 3443)
         
         if not found_paths:
-            print("😭 결과 없음. (데이터에 해당 값이 없거나 data 변수가 비어있음)")
+            print("😭 결과 없음.")
     else:
-        print("⚠️ 주의: 'data' 변수가 정의되지 않았습니다. 데이터를 먼저 로드해주세요.")
+        print("⚠️ 주의: 'data' 변수가 정의되지 않았습니다.")
 
 except Exception as e:
     print(f"오류 발생: {e}")
