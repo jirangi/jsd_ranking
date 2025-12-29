@@ -1,15 +1,13 @@
 import math
 
-# 찾은 결과를 저장할 리스트 (이걸로 'found' 여부를 판단합니다)
-found_paths = []
-
 # ==========================================
-# 1. 비교 로직 함수 (사용자가 만든 것 활용)
+# 1. 비교 로직 함수 (is_match)
 # ==========================================
 def is_match(target_input, data_value):
     """
+    값 비교 함수
     target_input: 찾는 값 (예: 3443)
-    data_value: 데이터 값 (예: 3443.85, "3443", 3443)
+    data_value: 데이터 값
     """
     if data_value is None:
         return False
@@ -21,7 +19,7 @@ def is_match(target_input, data_value):
     str_data_clean = str_data.replace(',', '')
 
     try:
-        # 소수점 버리고 정수로 변환하여 비교 (3443.99 -> 3443 == 3443)
+        # 소수점 버리고 정수로 변환하여 비교
         num_target = int(float(str_target))
         num_data = int(float(str_data_clean))
 
@@ -30,32 +28,33 @@ def is_match(target_input, data_value):
     except ValueError:
         pass
 
-    # 문자열 포함 여부 (보조)
+    # 문자열 포함 여부 확인
     if str_target in str_data:
         return True
         
     return False
 
 # ==========================================
-# 2. 변수명(Key) 추적 함수 (재귀)
+# 2. 변수명(Key) 추적 함수 (find_key_path)
 # ==========================================
+# 찾은 경로를 저장할 전역 리스트
+found_paths = []
+
 def find_key_path(data, target_value, current_path=""):
+    """
+    재귀적으로 데이터를 탐색하여 Key를 찾습니다.
+    """
     # 딕셔너리 탐색
     if isinstance(data, dict):
         for k, v in data.items():
-            # 경로 기록
             new_path = f"{current_path}['{k}']" if current_path else f"['{k}']"
 
-            # ★ 핵심 수정: 여기서 is_match 함수를 호출합니다!
+            # 값 비교
             if is_match(target_value, v):
-                print(f"\n" + "="*40)
-                print(f"🎉 찾았습니다! Key: '{k}'")
-                print(f"📌 전체 경로: data{new_path}")
-                print(f"💰 실제 값: {v}")
-                print("="*40 + "\n")
-                found_paths.append(new_path) # 찾았다고 기록
+                print(f"🎉 찾음! 경로: data{new_path} | 값: {v}")
+                found_paths.append(new_path)
 
-            # 더 깊이 탐색 (재귀)
+            # 더 깊이 탐색
             if isinstance(v, (dict, list)):
                 find_key_path(v, target_value, new_path)
 
@@ -64,34 +63,36 @@ def find_key_path(data, target_value, current_path=""):
         for i, item in enumerate(data):
             new_path = f"{current_path}[{i}]"
             
-            # 리스트 안의 값 자체가 목표값일 경우 체크
+            # 리스트 안의 값 자체 비교
             if is_match(target_value, item):
-                 print(f"\n" + "="*40)
-                 print(f"🎉 찾았습니다! Index: [{i}]")
-                 print(f"📌 전체 경로: data{new_path}")
-                 print(f"💰 실제 값: {item}")
-                 print("="*40 + "\n")
+                 print(f"🎉 찾음! 경로: data{new_path} | 값: {item}")
                  found_paths.append(new_path)
 
+            # 더 깊이 탐색
             find_key_path(item, target_value, new_path)
 
 # ==========================================
-# 실행부
+# 3. 실행부 (이 부분을 주의하세요!)
 # ==========================================
+# data 변수가 있다고 가정하고 실행합니다.
+# 만약 'data'가 정의되지 않았다는 오류가 나면 
+# 위쪽 코드 어딘가에서 data = ... 로 데이터를 불러오는 부분이 있어야 합니다.
 
-# (중요) data 변수가 이미 정의되어 있어야 합니다.
-# 예: data = response.json() 
+try:
+    print("🕵️‍♂️ 탐색 시작 (찾는 값: 3443)...")
+    
+    # 이전에 찾은 목록 초기화
+    found_paths = [] 
+    
+    # ★ 중요: data 변수가 코드 상단에 정의되어 있어야 합니다.
+    # 만약 data 변수명이 다르다면 아래 'data'를 실제 변수명으로 바꿔주세요.
+    if 'data' in locals() or 'data' in globals():
+        find_key_path(data, 3443)
+        
+        if not found_paths:
+            print("😭 결과 없음. (데이터에 해당 값이 없거나 data 변수가 비어있음)")
+    else:
+        print("⚠️ 주의: 'data' 변수가 정의되지 않았습니다. 데이터를 먼저 로드해주세요.")
 
-print("🕵️‍♂️ 탐색을 시작합니다...")
-
-# 찾은 목록 초기화
-found_paths = [] 
-
-# 함수 실행 (찾는 값: 3443)
-find_key_path(data, 3443) 
-
-# 결과 확인
-if len(found_paths) == 0:
-    print("\n😭 모든 곳을 뒤졌는데도 안 나옵니다... (데이터가 로드되었는지 확인해주세요)")
-else:
-    print(f"\n✅ 총 {len(found_paths)}개의 위치를 발견했습니다.")
+except Exception as e:
+    print(f"오류 발생: {e}")
