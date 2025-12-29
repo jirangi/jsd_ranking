@@ -1,67 +1,98 @@
 import math
 
+# ==========================================
+# 1. 비교 로직 함수 (is_match)
+# ==========================================
 def is_match(target_input, data_value):
     """
-    target_input: 사용자가 입력한 목표값 (예: 3443)
-    data_value: 게임 데이터에서 가져온 값 (예: 3443.85)
+    값 비교 함수
+    target_input: 찾는 값 (예: 3443)
+    data_value: 데이터 값
     """
-    # 데이터가 없으면 False
     if data_value is None:
         return False
-
-    # 모든 값을 문자열로 변환해 둡니다
+        
     str_target = str(target_input).strip()
     str_data = str(data_value).strip()
 
-    # ---------------------------------------------------
-    # 방법 1: 소수점을 버리고 정수끼리 비교 (가장 추천)
-    # ---------------------------------------------------
+    # 쉼표 제거 (예: "1,234" -> "1234")
+    str_data_clean = str_data.replace(',', '')
+
     try:
-        # 데이터를 실수(float)로 바꾼 뒤 정수(int)로 내림 처리
-        # 예: 3443.85 -> 3443
+        # 소수점 버리고 정수로 변환하여 비교
         num_target = int(float(str_target))
-        num_data = int(float(str_data))
-        
+        num_data = int(float(str_data_clean))
+
         if num_target == num_data:
             return True
     except ValueError:
-        pass  # 숫자가 아닌 경우(이름 등)는 넘어갑니다
+        pass
 
-    # ---------------------------------------------------
-    # 방법 2: 문자열 포함 여부 확인 (보조 수단)
-    # ---------------------------------------------------
-    # 예: "전투력 3443.85" 라는 문자에 "3443"이 들어있는지 확인
+    # 문자열 포함 여부 확인
     if str_target in str_data:
         return True
-
+        
     return False
 
 # ==========================================
-# 실행 테스트
+# 2. 변수명(Key) 추적 함수 (find_key_path)
 # ==========================================
-target = 3443
-game_data_list = [
-    {"name": "아크 패시브", "value": None},
-    {"name": "각인", "value": "원한"},
-    {"name": "전투 특성", "value": 3443.85},  # 여기가 문제였던 부분!
-]
+# 찾은 경로를 저장할 전역 리스트
+found_paths = []
 
-print(f"🎯 목표값: {target} (전투력)\n")
+def find_key_path(data, target_value, current_path=""):
+    """
+    재귀적으로 데이터를 탐색하여 Key를 찾습니다.
+    """
+    # 딕셔너리 탐색
+    if isinstance(data, dict):
+        for k, v in data.items():
+            new_path = f"{current_path}['{k}']" if current_path else f"['{k}']"
 
-found = False
-for item in game_data_list:
-    category = item['name']
-    value = item['value']
+            # 값 비교
+            if is_match(target_value, v):
+                print(f"🎉 찾음! 경로: data{new_path} | 값: {v}")
+                found_paths.append(new_path)
+
+            # 더 깊이 탐색
+            if isinstance(v, (dict, list)):
+                find_key_path(v, target_value, new_path)
+
+    # 리스트 탐색
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            new_path = f"{current_path}[{i}]"
+            
+            # 리스트 안의 값 자체 비교
+            if is_match(target_value, item):
+                 print(f"🎉 찾음! 경로: data{new_path} | 값: {item}")
+                 found_paths.append(new_path)
+
+            # 더 깊이 탐색
+            find_key_path(item, target_value, new_path)
+
+# ==========================================
+# 3. 실행부 (이 부분을 주의하세요!)
+# ==========================================
+# data 변수가 있다고 가정하고 실행합니다.
+# 만약 'data'가 정의되지 않았다는 오류가 나면 
+# 위쪽 코드 어딘가에서 data = ... 로 데이터를 불러오는 부분이 있어야 합니다.
+
+try:
+    print("🕵️‍♂️ 탐색 시작 (찾는 값: 3443)...")
     
-    print(f"🔎 [{category}] 검사 중... (값: {value})")
+    # 이전에 찾은 목록 초기화
+    found_paths = [] 
     
-    # 수정된 함수로 비교!
-    if is_match(target, value):
-        print(f"✅ 찾았습니다!! -> {category}: {value}")
-        found = True
-        break
+    # ★ 중요: data 변수가 코드 상단에 정의되어 있어야 합니다.
+    # 만약 data 변수명이 다르다면 아래 'data'를 실제 변수명으로 바꿔주세요.
+    if 'data' in locals() or 'data' in globals():
+        find_key_path(data, 3443)
+        
+        if not found_paths:
+            print("😭 결과 없음. (데이터에 해당 값이 없거나 data 변수가 비어있음)")
     else:
-        print(f"❌ 없음")
+        print("⚠️ 주의: 'data' 변수가 정의되지 않았습니다. 데이터를 먼저 로드해주세요.")
 
-if not found:
-    print("\n😭 모든 곳을 뒤졌는데도 안 나옵니다...")
+except Exception as e:
+    print(f"오류 발생: {e}")
